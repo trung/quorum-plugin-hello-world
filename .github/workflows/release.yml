@@ -31,6 +31,20 @@ jobs:
         with:
           name: go-artifacts
           path: go/build
+      - name: Record job status
+        id: job_status
+        if: always()
+        run: |
+          LOC="${{ runner.temp }}/build-go"
+          mkdir -p $LOC
+          echo "${{ job.status }} - ${{ job.name }}" > $LOC/status
+          echo "::set-output name=location::$LOC"
+      - name: Save job status
+        if: always()
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.job_status.location }}
+          key: status-build-go
   build-java:
     name: Build Java implementation
     runs-on: ubuntu-latest
@@ -73,6 +87,20 @@ jobs:
         with:
           name: java-artifacts
           path: java/target/dist
+      - name: Record job status
+        id: job_status
+        if: always()
+        run: |
+          LOC="${{ runner.temp }}/build-java"
+          mkdir -p $LOC
+          echo "${{ job.status }} - ${{ job.name }}" > $LOC/status
+          echo "::set-output name=location::$LOC"
+      - name: Save job status
+        if: always()
+        uses: actions/cache@v1
+        with:
+          path: ${{ steps.job_status.location }}
+          key: status-build-java
   prepare-deploy:
     name: Prepare package ${{ matrix.package }}
     needs:
@@ -133,3 +161,21 @@ jobs:
                 "${{ matrix.artifact }}/${{ matrix.arch }}/${{ steps.meta.outputs.package }}-${{ steps.meta.outputs.version_short }}.*" \
                 ${{ secrets.BINTRAY_ORGANIZATION }}/${{ secrets.BINTRAY_REPOSITORY }}/${{ steps.meta.outputs.package }}/${{ steps.meta.outputs.version }} \
                 ${{ steps.meta.outputs.package }}/${{ steps.meta.outputs.version }}/${{ matrix.arch }}/
+  notify:
+    name: Notify Slack
+    needs:
+      - build-go
+      - build-java
+      - prepare-deploy
+      - deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect job status
+        uses: actions/cache@v1
+        with:
+          path: ${{ runner.temp }}/status
+          key: notify-slack
+          restore-keys: status-
+      - name: Send message
+        run: |
+          ls ${{ runner.temp }}/status/
