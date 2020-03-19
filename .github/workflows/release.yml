@@ -35,16 +35,16 @@ jobs:
         id: job_status
         if: always()
         run: |
-          LOC="${{ runner.temp }}/build-go"
+          LOC="${{ runner.temp }}/status"
           mkdir -p $LOC
-          echo "${{ job.status }} - ${{ job.name }}" > $LOC/status
+          echo "${{ job.status }} - ${{ job.container.id }}" > $LOC/build-go
           echo "::set-output name=location::$LOC"
       - name: Save job status
         if: always()
         uses: actions/cache@v1
         with:
           path: ${{ steps.job_status.outputs.location }}
-          key: status-build-go
+          key: status-build-go-${{ github.run_number }}
   build-java:
     name: Build Java implementation
     runs-on: ubuntu-latest
@@ -74,13 +74,6 @@ jobs:
         run: |
           cd java
           mvn clean package -Dpackage=quorum-plugin-hello-world-java -Dversion=${{ steps.meta.outputs.version_short }}
-      - name: Cache dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         if: success()
@@ -91,16 +84,16 @@ jobs:
         id: job_status
         if: always()
         run: |
-          LOC="${{ runner.temp }}/build-java"
+          LOC="${{ runner.temp }}/status"
           mkdir -p $LOC
-          echo "${{ job.status }} - ${{ job.name }}" > $LOC/status
+          echo "${{ job.status }} - ${{ job.container.id }}" > $LOC/build-java
           echo "::set-output name=location::$LOC"
       - name: Save job status
         if: always()
         uses: actions/cache@v1
         with:
           path: ${{ steps.job_status.outputs.location }}
-          key: status-build-java
+          key: status-build-java-${{ github.run_number }}
   prepare-deploy:
     name: Prepare package ${{ matrix.package }}
     needs:
@@ -174,8 +167,10 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ${{ runner.temp }}/status
-          key: notify-slack
-          restore-keys: status-
+          key: notify-slack-${{ github.run_number }}
+          restore-keys:
+            - status-build-go-
+            - status-build-java-
       - name: Send message
         run: |
-          ls ${{ runner.temp }}/status/
+          cat ${{ runner.temp }}/status/*
