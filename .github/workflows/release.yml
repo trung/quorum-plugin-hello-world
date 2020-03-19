@@ -168,7 +168,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/status
           key: notify-slack-${{ github.run_number }}
-          restore-keys:
+          restore-keys: |
             status-build-go-
             status-build-java-
       - name: Send message
