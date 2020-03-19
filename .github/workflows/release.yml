@@ -43,7 +43,7 @@ jobs:
         if: always()
         uses: actions/cache@v1
         with:
-          path: ${{ steps.job_status.location }}
+          path: ${{ steps.job_status.outputs.location }}
           key: status-build-go
   build-java:
     name: Build Java implementation
@@ -99,7 +99,7 @@ jobs:
         if: always()
         uses: actions/cache@v1
         with:
-          path: ${{ steps.job_status.location }}
+          path: ${{ steps.job_status.outputs.location }}
           key: status-build-java
   prepare-deploy:
     name: Prepare package ${{ matrix.package }}
